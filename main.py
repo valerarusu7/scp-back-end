@@ -4,9 +4,20 @@ import json
 from MerkleTree import create_merkle_tree, validate
 from flask_cors import CORS
 import hashlib
-from utils import generate_pdf, get_hash_of_pdf, send_email
+from utils import generate_pdf, get_hash_of_pdf
+from flask_mail import Message, Mail
 
 app = Flask(__name__)
+app.config.update(
+    DEBUG=True,
+    MAIL_SERVER='smtp.gmail.com',
+    MAIL_PORT=465,
+    MAIL_USERNAME='viatestemail2021@gmail.com',
+    MAIL_PASSWORD='via2021!testemail',
+    MAIL_USE_TLS=False,
+    MAIL_USE_SSL=True,
+)
+mail = Mail(app)
 CORS(app)
 blockchain = Blockchain()
 
@@ -48,7 +59,14 @@ def add_block():
             blockchain.add_block(data=merkle_tree.get_merkle_root(), merkle_tree=merkle_tree)
             merkle_root = merkle_tree.get_merkle_root()
             if blockchain.verify() is not False:
-                send_email(json_data)
+                msg = Message("Congratulation for graduating from VIA University College, have a wonderful life!",
+                              sender="viatestemail2021@gmail.com",
+                              recipients=[json_data['student_number'] + '@via.dk'])
+                file_name = json_data['student_number'] + '.pdf'
+                with app.open_resource(file_name) as fp:
+                    msg.attach(file_name, "application/pdf", fp.read())
+                mail.send(msg)
+
                 success = True
         return {'success': success, 'data': merkle_root, 'index': block_id}
 
